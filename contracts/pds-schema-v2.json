@@ -1,0 +1,117 @@
+{
+  "version": "2.0.0",
+  "storage": "Local Node.js server and SQLite database; user-owned diary document",
+  "timezone": "Asia/Seoul",
+  "authentication": {
+    "passwordHash": "scrypt with random per-account salt",
+    "sessionCookie": "HttpOnly; SameSite=Lax",
+    "sessionLifetimeDays": 7,
+    "logout": "revoke stored session digest",
+    "defaultBindAddress": "127.0.0.1"
+  },
+  "physicalStorage": {
+    "engine": "node:sqlite",
+    "tables": ["users", "sessions", "diary_data"],
+    "ownership": "diary_data.user_id is selected only from the authenticated session"
+  },
+  "dateRules": {
+    "dateOnly": "YYYY-MM-DD interpreted in Asia/Seoul",
+    "timestamps": "ISO-8601 UTC instants; display in Asia/Seoul"
+  },
+  "fiveDayStudy": {
+    "storage": "per-account experiment field in diary_data.data_json",
+    "observations": "up to five entries on distinct ascending Seoul calendar dates; user-entered actual values only",
+    "setup": ["question", "metric", "unit", "method", "initialRule", "startedAt"],
+    "ruleChange": "required after observations 1 and 2 and before observation 3; stores oldRule, newRule, reason, changedAt",
+    "comparison": "fixed metric, unit, and calculation method; display before (days 1–2) and after (days 3–5) sums and arithmetic means"
+  },
+  "tables": {
+    "plans": {
+      "columns": {
+        "id": "text primary key",
+        "title": "text not null",
+        "startDate": "date",
+        "endDate": "date",
+        "priority": "integer 1..3",
+        "successCriteria": "text",
+        "estimatedMinutes": "integer >= 0",
+        "createdAt": "timestamp",
+        "updatedAt": "timestamp"
+      },
+      "relations": ["one-to-many tasks", "one-to-many plan_revisions"]
+    },
+    "plan_revisions": {
+      "columns": {
+        "id": "text primary key",
+        "planId": "text references plans.id",
+        "snapshotJson": "text not null",
+        "changedAt": "timestamp not null"
+      }
+    },
+    "tasks": {
+      "columns": {
+        "id": "text primary key",
+        "planId": "text nullable references plans.id",
+        "title": "text not null",
+        "dueDate": "date nullable",
+        "priority": "integer 1..3",
+        "tagsJson": "text",
+        "estimatedMinutes": "integer >= 0",
+        "status": "text: open|done",
+        "blockerReason": "text nullable",
+        "createdAt": "timestamp",
+        "deletedAt": "timestamp nullable"
+      },
+      "relations": ["one-to-many execution_records"]
+    },
+    "execution_records": {
+      "columns": {
+        "id": "text primary key",
+        "taskId": "text references tasks.id",
+        "idempotencyKey": "text unique",
+        "startedAt": "timestamp",
+        "endedAt": "timestamp",
+        "actualMinutes": "integer >= 0",
+        "blockerReason": "text nullable"
+      }
+    },
+    "reflections": {
+      "columns": {
+        "id": "text primary key",
+        "periodStart": "date",
+        "periodEnd": "date",
+        "nextPlanId": "text nullable references plans.id",
+        "improvement": "text",
+        "createdAt": "timestamp"
+      }
+    },
+    "expenses": {
+      "columns": {
+        "id": "text primary key",
+        "title": "text not null",
+        "category": "text",
+        "amountWon": "integer >= 0",
+        "spentOn": "date"
+      }
+    },
+    "media_records": {
+      "columns": {
+        "id": "text primary key",
+        "title": "text not null",
+        "kind": "text",
+        "note": "text",
+        "rating": "text",
+        "createdAt": "timestamp"
+      }
+    }
+  },
+  "reviewDefinitions": {
+    "planned": "non-deleted tasks for selected period",
+    "completed": "those tasks whose current status is done",
+    "overdue": "open tasks with dueDate earlier than Seoul today",
+    "blocked": "distinct tasks with at least one non-empty blocker reason",
+    "estimatedMinutes": "sum of estimatedMinutes for period tasks; defaults to 0",
+    "actualMinutes": "sum of execution_records.actualMinutes for period tasks; defaults to 0",
+    "differenceMinutes": "actualMinutes - estimatedMinutes"
+  }
+}
