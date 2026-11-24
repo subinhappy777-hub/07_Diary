@@ -22,3 +22,11 @@
 ## 재현
 
 `node security-check.js`를 실행하면 별도 임시 SQLite DB에 같은 테스트 비밀번호를 사용하는 계정 두 개를 만들고 salt/hash, 7일 만료, 로그아웃 무효화, 중복 가입, 로그인 실패 안내, 양방향 자료 격리, 비로그인 직접 요청을 확인합니다. 테스트가 끝나면 임시 DB를 삭제하며 비밀값은 출력하지 않습니다.
+
+## 공개 배포 구조
+
+- Vercel은 공개 UI와 `api/*.js` Node.js API를 제공하고, Supabase Postgres에 계정, 세션 지문, 자료 JSON을 저장합니다.
+- 비밀번호는 Vercel API에서 `node:crypto.scrypt`로 해시하며 계정마다 16바이트 무작위 salt를 생성합니다.
+- 세션은 256비트 무작위 HttpOnly·Secure·SameSite=Lax 쿠키로 발급하고 DB에는 SHA-256 지문만 저장합니다. 7일 만료와 로그아웃 삭제를 적용하며 서명 비밀키는 사용하지 않습니다.
+- Supabase 테이블에는 RLS를 켜고 `anon`/`authenticated` 직접 접근을 회수합니다. 서버용 Supabase Secret key는 Vercel 환경 변수로만 전달합니다. 공개 저장소와 브라우저 코드에는 넣지 않습니다.
+- 공개 배포의 양방향 자료 격리 점검은 배포 후 별도 확인이 필요합니다. `security-check.js` 결과는 로컬 Node/SQLite 서버에 대한 결과이며 공개 API 검증을 대신하지 않습니다.
