@@ -1,0 +1,7 @@
+diary.sqlite
+diary.sqlite-shm
+diary.sqlite-wal
+.git/
+.codex/
+.agents/
+node_modules/
